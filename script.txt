@@ -14,8 +14,8 @@ local LocalPlayer = Players.LocalPlayer
 --// ============ CONFIG ============
 local CONFIG = {
     SCRIPT_URL = "https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua",
-    DISCORD_LINK = "https://discord.gg/yourdiscord",
-    GETKEY_LINK = "https://your-getkey-site.com",
+    DISCORD_LINK = "https://discord.gg/48MADJDMRX",
+    GETKEY_LINK = "https://tasksub.io/F4R",
     SAVE_FILE = "SelomenHubKeyV6.json",
     
     MENU_WIDTH = 430,

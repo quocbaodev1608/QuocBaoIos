@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SELOMENHUB - Vượt Link Nhận Key</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 24px;
+        }
+        .box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+        .key-display {
+            font-size: 16px;
+            font-family: monospace;
+            color: #4ade80;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            width: 100%;
+            margin-bottom: 12px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #0369a1;
+        }
+        .btn-success {
+            background: #16a34a;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
+        .status {
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-top: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>SELOMENHUB</h1>
+        <div class="subtitle">Hệ thống Vượt Link Nhận Key (99 Ngày)</div>
+
+        <!-- PHẦN 1: Hiển thị khi chưa vượt link -->
+        <div id="lockSection">
+            <div class="box">
+                <div style="font-size: 14px; color: #facc15; margin-bottom: 8px;">⚠️ Bạn cần vượt link để lấy key!</div>
+                <div style="font-size: 13px; color: #94a3b8;">Nhấn nút bên dưới để tạo link vượt ngẫu nhiên mới.</div>
+            </div>
+            <button class="btn btn-success" onclick="getNewLink()">Get Key Mới (Link4m)</button>
+        </div>
+
+        <!-- PHẦN 2: Hiển thị sau khi đã vượt link thành công -->
+        <div id="keySection" class="hidden">
+            <div class="box">
+                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Key của bạn (Hạn 99 ngày):</div>
+                <div id="keyBox" class="key-display">Đang tải...</div>
+                <button class="btn" onclick="copyKey()">Sao chép Key</button>
+            </div>
+            <button class="btn" onclick="location.href = window.location.pathname">Lấy Key Khác</button>
+        </div>
+
+        <div id="statusText" class="status">Trạng thái: Vui lòng vượt link để tiếp tục.</div>
+    </div>
+
+    <script>
+        // Danh sách 20 key
+        const keysList = [
+            "QBAO-HUB-PERM-UVWX1234", "QBAO-HUB-PERM-YZ567890",
+            "QBAO-HUB-PERM-ABCD1234", "QBAO-HUB-PERM-EFGH5678",
+            "QBAO-HUB-PERM-IJKL9012", "QBAO-HUB-PERM-MNOP3456",
+            "QBAO-HUB-PERM-QRST7890", "QBAO-HUB-PERM-UVWX2345",
+            "QBAO-HUB-PERM-YZAB6789", "QBAO-HUB-PERM-CDEF0123",
+            "QBAO-HUB-PERM-GHIJ4567", "QBAO-HUB-PERM-KLMN8901",
+            "QBAO-HUB-PERM-OPQR2345", "QBAO-HUB-PERM-STUV6789",
+            "QBAO-HUB-PERM-WXYZ0123", "QBAO-HUB-PERM-ABCD5678",
+            "QBAO-HUB-PERM-EFGH9012", "QBAO-HUB-PERM-IJKL3456",
+            "QBAO-HUB-PERM-MNOP7890", "QBAO-HUB-PERM-QRST1234"
+        ];
+
+        // API Token Link4m
+        const apiToken = "694f6ebda7a8b3469d67bb26";
+
+        // Kiểm tra xem trình duyệt đã quay lại từ trang vượt link chưa (kiểm tra tham số ?key=...)
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const passedKey = urlParams.get('key');
+
+            if (passedKey) {
+                // Nếu có key trong URL (đã vượt link thành công) -> Ẩn nút vượt link, hiện key
+                document.getElementById('lockSection').classList.add('hidden');
+                document.getElementById('keySection').classList.remove('hidden');
+                document.getElementById('keyBox').innerText = passedKey;
+                document.getElementById('statusText').innerText = "Vượt link thành công! Đây là key của bạn.";
+            }
+        };
+
+        // Hàm tạo link4m mới mỗi khi bấm nút
+        function getNewLink() {
+            // Chọn ngẫu nhiên 1 key trong danh sách để gắn ngầm vào URL đích sau khi vượt link
+            const randomKey = keysList[Math.floor(Math.random() * keysList.length)];
+            
+            // URL đích sau khi vượt link xong sẽ tự động trỏ về trang web hiện tại kèm theo key ngẫu nhiên đó
+            const targetUrl = encodeURIComponent(window.location.origin + window.location.pathname + "?key=" + randomKey);
+            
+            // Tạo link API chuẩn của Link4m
+            const link4mAPI = `https://link4m.co/api-shorten?api=${apiToken}&url=${targetUrl}`;
+
+            document.getElementById("statusText").innerText = "Đang tạo link vượt mới...";
+
+            // Gọi API Link4m để sinh ra link rút gọn mới mỗi lần bấm
+            fetch(link4mAPI)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success" || data.shortenedUrl || data.url) {
+                        const finalLink = data.shortenedUrl || data.url || data.result;
+                        window.location.href = finalLink; // Chuyển hướng trực tiếp sang link4m
+                    } else {
+                        // Fallback dự phòng
+                        const fallbackLink = `https://link4m.co/st?api=${apiToken}&url=${targetUrl}`;
+                        window.location.href = fallbackLink;
+                    }
+                })
+                .catch(error => {
+                    // Fallback nếu lỗi kết nối
+                    const fallbackLink = `https://link4m.co/st?api=${apiToken}&url=${targetUrl}`;
+                    window.location.href = fallbackLink;
+                });
+        }
+
+        // Hàm sao chép key
+        function copyKey() {
+            const keyText = document.getElementById("keyBox").innerText;
+            navigator.clipboard.writeText(keyText).then(() => {
+                document.getElementById("statusText").innerText = "Đã sao chép key vào bộ nhớ tạm!";
+            });
+        }
+    </script>
+</body>
+</html>

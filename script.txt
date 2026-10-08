@@ -1,0 +1,1034 @@
+--// ============================================
+--// SELOMENHUB KEY SYSTEM V6 - FINAL
+--// Auto Close Menu | No Diacritics | Premium FX
+--// ============================================
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+--// ============ CONFIG ============
+local CONFIG = {
+    SCRIPT_URL = "https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua",
+    DISCORD_LINK = "https://discord.gg/yourdiscord",
+    GETKEY_LINK = "https://your-getkey-site.com",
+    SAVE_FILE = "SelomenHubKeyV6.json",
+    
+    MENU_WIDTH = 430,
+    MENU_HEIGHT = 420,
+    MENU_POSITION = UDim2.new(0.5, 0, 0.5, 0),
+    
+    ENABLE_12H_HWID_LOCK = true,
+    
+    KEYS_12H = {
+        ["QBAO-HUB-12H-A1B2C3D4"] = {note = "Key 12H #1"},
+        ["QBAO-HUB-12H-E5F6G7H8"] = {note = "Key 12H #2"},
+        ["QBAO-HUB-12H-I9J0K1L2"] = {note = "Key 12H #3"},
+        ["QBAO-HUB-12H-M3N4O5P6"] = {note = "Key 12H #4"},
+        ["QBAO-HUB-12H-Q7R8S9T0"] = {note = "Key 12H #5"},
+    },
+    
+    KEYS_PERM = {
+        ["QBAO-HUB-PERM-UVWX1234"] = {note = "VIP #1"},
+        ["QBAO-HUB-PERM-YZ567890"] = {note = "VIP #2"},
+        ["QBAO-HUB-PERM-ABCD1234"] = {note = "VIP #3"},
+        ["QBAO-HUB-PERM-EFGH5678"] = {note = "VIP #4"},
+        ["QBAO-HUB-PERM-IJKL9012"] = {note = "VIP #5"},
+        ["QBAO-HUB-PERM-MNOP3456"] = {note = "VIP #6"},
+        ["QBAO-HUB-PERM-QRST7890"] = {note = "VIP #7"},
+        ["QBAO-HUB-PERM-UVWX2345"] = {note = "VIP #8"},
+        ["QBAO-HUB-PERM-YZAB6789"] = {note = "VIP #9"},
+        ["QBAO-HUB-PERM-CDEF0123"] = {note = "VIP #10"},
+        ["QBAO-HUB-PERM-GHIJ4567"] = {note = "VIP #11"},
+        ["QBAO-HUB-PERM-KLMN8901"] = {note = "VIP #12"},
+        ["QBAO-HUB-PERM-OPQR2345"] = {note = "VIP #13"},
+        ["QBAO-HUB-PERM-STUV6789"] = {note = "VIP #14"},
+        ["QBAO-HUB-PERM-WXYZ0123"] = {note = "VIP #15"},
+        ["QBAO-HUB-PERM-ABCD5678"] = {note = "VIP #16"},
+        ["QBAO-HUB-PERM-EFGH9012"] = {note = "VIP #17"},
+        ["QBAO-HUB-PERM-IJKL3456"] = {note = "VIP #18"},
+        ["QBAO-HUB-PERM-MNOP7890"] = {note = "VIP #19"},
+        ["QBAO-HUB-PERM-QRST1234"] = {note = "VIP #20"},
+    },
+    
+    DURATION_12H = 12 * 60 * 60,
+    MAX_FAILED_ATTEMPTS = 5,
+    LOCKOUT_TIME = 60,
+}
+
+--// ============ COLORS ============
+local COLORS = {
+    Background = Color3.fromRGB(10, 6, 20),
+    Panel = Color3.fromRGB(22, 12, 40),
+    PanelLight = Color3.fromRGB(40, 25, 65),
+    Accent = Color3.fromRGB(255, 105, 180),
+    Accent2 = Color3.fromRGB(180, 130, 255),
+    Accent3 = Color3.fromRGB(120, 200, 255),
+    Gold = Color3.fromRGB(255, 215, 120),
+    Text = Color3.fromRGB(255, 240, 250),
+    SubText = Color3.fromRGB(200, 180, 220),
+    Success = Color3.fromRGB(120, 255, 180),
+    Error = Color3.fromRGB(255, 100, 120),
+    Warning = Color3.fromRGB(255, 200, 100),
+    Glow = Color3.fromRGB(255, 150, 220),
+    Glow2 = Color3.fromRGB(150, 100, 255),
+    Glow3 = Color3.fromRGB(100, 200, 255),
+    Discord = Color3.fromRGB(88, 101, 242),
+    DiscordHover = Color3.fromRGB(105, 118, 255),
+    GetKey = Color3.fromRGB(120, 220, 150),
+    GetKeyHover = Color3.fromRGB(140, 240, 170),
+}
+
+--// ============ HWID ============
+local function getHWID()
+    local hwid = "UNKNOWN"
+    pcall(function()
+        if gethwid then
+            hwid = gethwid()
+        elseif syn and syn.get_hwid then
+            hwid = syn.get_hwid()
+        elseif KRNL_LOADED and getgenv().KrnlHwid then
+            hwid = getgenv().KrnlHwid
+        elseif fluxus and fluxus.getHWID then
+            hwid = fluxus.getHWID()
+        else
+            local raw = tostring(LocalPlayer.UserId) .. "_" .. tostring(LocalPlayer.Name) .. "_" .. tostring(game.PlaceId)
+            local hash = 0
+            for i = 1, #raw do
+                hash = (hash * 31 + string.byte(raw, i)) % 2147483647
+            end
+            hwid = "GEN" .. tostring(hash)
+        end
+    end)
+    return tostring(hwid)
+end
+
+local CURRENT_HWID = getHWID()
+
+--// ============ DATA ============
+local function loadData()
+    if isfile and isfile(CONFIG.SAVE_FILE) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(CONFIG.SAVE_FILE))
+        end)
+        if ok and data then return data end
+    end
+    return {
+        key = nil,
+        expire = 0,
+        isPerm = false,
+        hwid = nil,
+        activatedAt = 0,
+        failedAttempts = 0,
+        lockUntil = 0,
+    }
+end
+
+local function saveData(data)
+    if writefile then
+        pcall(function()
+            writefile(CONFIG.SAVE_FILE, HttpService:JSONEncode(data))
+        end)
+    end
+end
+
+local savedData = loadData()
+
+--// ============ CLEANUP ============
+if CoreGui:FindFirstChild("SelomenHubKeyGui") then
+    CoreGui.SelomenHubKeyGui:Destroy()
+end
+
+--// ============ SCREEN GUI ============
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SelomenHubKeyGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999999
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+--// ============ MAIN FRAME ============
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Size = UDim2.new(0, CONFIG.MENU_WIDTH, 0, CONFIG.MENU_HEIGHT)
+Main.Position = CONFIG.MENU_POSITION
+Main.BackgroundColor3 = COLORS.Background
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = false
+Main.ClipsDescendants = false
+Main.Parent = ScreenGui
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 20)
+
+local MainGrad = Instance.new("UIGradient")
+MainGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, COLORS.Panel),
+    ColorSequenceKeypoint.new(0.5, COLORS.Background),
+    ColorSequenceKeypoint.new(1, COLORS.Panel),
+}
+MainGrad.Rotation = 135
+MainGrad.Parent = Main
+
+-- Triple glow
+local GlowFrame = Instance.new("Frame")
+GlowFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+GlowFrame.Size = UDim2.new(1, 24, 1, 24)
+GlowFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+GlowFrame.BackgroundColor3 = COLORS.Glow
+GlowFrame.BackgroundTransparency = 0.9
+GlowFrame.BorderSizePixel = 0
+GlowFrame.ZIndex = 0
+GlowFrame.Parent = Main
+Instance.new("UICorner", GlowFrame).CornerRadius = UDim.new(0, 30)
+
+local GlowFrame2 = Instance.new("Frame")
+GlowFrame2.AnchorPoint = Vector2.new(0.5, 0.5)
+GlowFrame2.Size = UDim2.new(1, 16, 1, 16)
+GlowFrame2.Position = UDim2.new(0.5, 0, 0.5, 0)
+GlowFrame2.BackgroundColor3 = COLORS.Glow2
+GlowFrame2.BackgroundTransparency = 0.92
+GlowFrame2.BorderSizePixel = 0
+GlowFrame2.ZIndex = 0
+GlowFrame2.Parent = Main
+Instance.new("UICorner", GlowFrame2).CornerRadius = UDim.new(0, 26)
+
+local GlowFrame3 = Instance.new("Frame")
+GlowFrame3.AnchorPoint = Vector2.new(0.5, 0.5)
+GlowFrame3.Size = UDim2.new(1, 8, 1, 8)
+GlowFrame3.Position = UDim2.new(0.5, 0, 0.5, 0)
+GlowFrame3.BackgroundColor3 = COLORS.Glow3
+GlowFrame3.BackgroundTransparency = 0.94
+GlowFrame3.BorderSizePixel = 0
+GlowFrame3.ZIndex = 0
+GlowFrame3.Parent = Main
+Instance.new("UICorner", GlowFrame3).CornerRadius = UDim.new(0, 22)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = COLORS.Gold
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.25
+MainStroke.Parent = Main
+
+local BorderGrad = Instance.new("UIGradient")
+BorderGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, COLORS.Gold),
+    ColorSequenceKeypoint.new(0.33, COLORS.Accent),
+    ColorSequenceKeypoint.new(0.66, COLORS.Accent2),
+    ColorSequenceKeypoint.new(1, COLORS.Gold),
+}
+BorderGrad.Parent = MainStroke
+
+-- Sparkle container
+local SparkleContainer = Instance.new("Frame")
+SparkleContainer.Size = UDim2.new(1, 0, 1, 0)
+SparkleContainer.BackgroundTransparency = 1
+SparkleContainer.ClipsDescendants = true
+SparkleContainer.ZIndex = 5
+SparkleContainer.Parent = Main
+Instance.new("UICorner", SparkleContainer).CornerRadius = UDim.new(0, 20)
+
+--// ============ HEADER ============
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 66)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
+local HeaderIconBg = Instance.new("Frame")
+HeaderIconBg.Size = UDim2.new(0, 42, 0, 42)
+HeaderIconBg.Position = UDim2.new(0, 18, 0, 12)
+HeaderIconBg.BackgroundColor3 = COLORS.PanelLight
+HeaderIconBg.BorderSizePixel = 0
+HeaderIconBg.Parent = Header
+Instance.new("UICorner", HeaderIconBg).CornerRadius = UDim.new(0, 13)
+
+local HeaderIconStroke = Instance.new("UIStroke")
+HeaderIconStroke.Color = COLORS.Gold
+HeaderIconStroke.Thickness = 1.3
+HeaderIconStroke.Transparency = 0.3
+HeaderIconStroke.Parent = HeaderIconBg
+
+local HeaderIconGrad = Instance.new("UIGradient")
+HeaderIconGrad.Color = ColorSequence.new(COLORS.Gold, COLORS.Accent)
+HeaderIconGrad.Parent = HeaderIconStroke
+
+local HeaderIcon = Instance.new("TextLabel")
+HeaderIcon.Size = UDim2.new(1, 0, 1, 0)
+HeaderIcon.BackgroundTransparency = 1
+HeaderIcon.Text = "👑"
+HeaderIcon.TextSize = 22
+HeaderIcon.Font = Enum.Font.GothamBold
+HeaderIcon.Parent = HeaderIconBg
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -140, 0, 24)
+Title.Position = UDim2.new(0, 68, 0, 12)
+Title.BackgroundTransparency = 1
+Title.Text = "SELOMENHUB KEY"
+Title.TextColor3 = COLORS.Gold
+Title.TextSize = 17
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local TitleGrad = Instance.new("UIGradient")
+TitleGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, COLORS.Gold),
+    ColorSequenceKeypoint.new(0.25, COLORS.Accent),
+    ColorSequenceKeypoint.new(0.5, COLORS.Accent2),
+    ColorSequenceKeypoint.new(0.75, COLORS.Accent3),
+    ColorSequenceKeypoint.new(1, COLORS.Gold),
+}
+TitleGrad.Parent = Title
+
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(1, -140, 0, 14)
+SubTitle.Position = UDim2.new(0, 68, 0, 36)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "He thong key cao cap V6"
+SubTitle.TextColor3 = COLORS.SubText
+SubTitle.TextSize = 10
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.Parent = Header
+
+-- Close Btn
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -40, 0, 18)
+CloseBtn.BackgroundColor3 = COLORS.PanelLight
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = COLORS.Error
+CloseBtn.TextSize = 13
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = Header
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
+
+CloseBtn.MouseEnter:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.Error, TextColor3 = Color3.new(1,1,1)}):Play()
+end)
+CloseBtn.MouseLeave:Connect(function()
+    TweenService:Create(CloseBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.PanelLight, TextColor3 = COLORS.Error}):Play()
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Minimize
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -76, 0, 18)
+MinBtn.BackgroundColor3 = COLORS.PanelLight
+MinBtn.Text = "_"
+MinBtn.TextColor3 = COLORS.Gold
+MinBtn.TextSize = 14
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.AutoButtonColor = false
+MinBtn.Parent = Header
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1, 0)
+
+MinBtn.MouseEnter:Connect(function()
+    TweenService:Create(MinBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.Gold, TextColor3 = COLORS.Background}):Play()
+end)
+MinBtn.MouseLeave:Connect(function()
+    TweenService:Create(MinBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.PanelLight, TextColor3 = COLORS.Gold}):Play()
+end)
+
+-- Divider
+local Divider = Instance.new("Frame")
+Divider.Size = UDim2.new(1, -36, 0, 1)
+Divider.Position = UDim2.new(0, 18, 0, 66)
+Divider.BackgroundColor3 = COLORS.Gold
+Divider.BackgroundTransparency = 0.5
+Divider.BorderSizePixel = 0
+Divider.Parent = Main
+
+local DivGrad = Instance.new("UIGradient")
+DivGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.new(1,1,1)),
+    ColorSequenceKeypoint.new(0.5, COLORS.Gold),
+    ColorSequenceKeypoint.new(1, Color3.new(1,1,1)),
+}
+DivGrad.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.5, 0),
+    NumberSequenceKeypoint.new(1, 1),
+}
+DivGrad.Parent = Divider
+
+--// ============ BUTTONS ============
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(0.48, 0, 0, 42)
+GetKeyBtn.Position = UDim2.new(0, 18, 0, 80)
+GetKeyBtn.BackgroundColor3 = COLORS.GetKey
+GetKeyBtn.Text = "GET KEY"
+GetKeyBtn.TextColor3 = Color3.fromRGB(15, 40, 25)
+GetKeyBtn.TextSize = 12
+GetKeyBtn.Font = Enum.Font.GothamBold
+GetKeyBtn.AutoButtonColor = false
+GetKeyBtn.Parent = Main
+Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 13)
+
+local GetKeyGrad = Instance.new("UIGradient")
+GetKeyGrad.Color = ColorSequence.new(COLORS.GetKey, Color3.fromRGB(80, 200, 180))
+GetKeyGrad.Parent = GetKeyBtn
+
+local GetKeyStroke = Instance.new("UIStroke")
+GetKeyStroke.Color = Color3.fromRGB(200, 255, 220)
+GetKeyStroke.Thickness = 1
+GetKeyStroke.Transparency = 0.6
+GetKeyStroke.Parent = GetKeyBtn
+
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Size = UDim2.new(0.48, 0, 0, 42)
+DiscordBtn.Position = UDim2.new(0.52, 0, 0, 80)
+DiscordBtn.BackgroundColor3 = COLORS.Discord
+DiscordBtn.Text = "DISCORD"
+DiscordBtn.TextColor3 = Color3.new(1,1,1)
+DiscordBtn.TextSize = 12
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.AutoButtonColor = false
+DiscordBtn.Parent = Main
+Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 13)
+
+local DiscordGrad = Instance.new("UIGradient")
+DiscordGrad.Color = ColorSequence.new(COLORS.Discord, Color3.fromRGB(130, 100, 255))
+DiscordGrad.Parent = DiscordBtn
+
+local DiscordStroke = Instance.new("UIStroke")
+DiscordStroke.Color = Color3.fromRGB(180, 170, 255)
+DiscordStroke.Thickness = 1
+DiscordStroke.Transparency = 0.6
+DiscordStroke.Parent = DiscordBtn
+
+GetKeyBtn.MouseEnter:Connect(function()
+    TweenService:Create(GetKeyBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.GetKeyHover}):Play()
+    TweenService:Create(GetKeyStroke, TweenInfo.new(0.15), {Transparency = 0}):Play()
+end)
+GetKeyBtn.MouseLeave:Connect(function()
+    TweenService:Create(GetKeyBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.GetKey}):Play()
+    TweenService:Create(GetKeyStroke, TweenInfo.new(0.15), {Transparency = 0.6}):Play()
+end)
+DiscordBtn.MouseEnter:Connect(function()
+    TweenService:Create(DiscordBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.DiscordHover}):Play()
+    TweenService:Create(DiscordStroke, TweenInfo.new(0.15), {Transparency = 0}):Play()
+end)
+DiscordBtn.MouseLeave:Connect(function()
+    TweenService:Create(DiscordBtn, TweenInfo.new(0.15), {BackgroundColor3 = COLORS.Discord}):Play()
+    TweenService:Create(DiscordStroke, TweenInfo.new(0.15), {Transparency = 0.6}):Play()
+end)
+
+--// ============ STATUS BADGE ============
+local StatusBadge = Instance.new("Frame")
+StatusBadge.Size = UDim2.new(1, -36, 0, 26)
+StatusBadge.Position = UDim2.new(0, 18, 0, 132)
+StatusBadge.BackgroundColor3 = COLORS.PanelLight
+StatusBadge.BackgroundTransparency = 0.3
+StatusBadge.BorderSizePixel = 0
+StatusBadge.Parent = Main
+Instance.new("UICorner", StatusBadge).CornerRadius = UDim.new(0, 8)
+
+local StatusDot = Instance.new("Frame")
+StatusDot.Size = UDim2.new(0, 8, 0, 8)
+StatusDot.Position = UDim2.new(0, 12, 0.5, -4)
+StatusDot.BackgroundColor3 = COLORS.SubText
+StatusDot.BorderSizePixel = 0
+StatusDot.Parent = StatusBadge
+Instance.new("UICorner", StatusDot).CornerRadius = UDim.new(1, 0)
+
+local StatusDotGlow = Instance.new("Frame")
+StatusDotGlow.Size = UDim2.new(1, 6, 1, 6)
+StatusDotGlow.Position = UDim2.new(0.5, -7, 0.5, -7)
+StatusDotGlow.BackgroundColor3 = COLORS.SubText
+StatusDotGlow.BackgroundTransparency = 0.7
+StatusDotGlow.BorderSizePixel = 0
+StatusDotGlow.ZIndex = 0
+StatusDotGlow.Parent = StatusDot
+Instance.new("UICorner", StatusDotGlow).CornerRadius = UDim.new(1, 0)
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, -32, 1, 0)
+StatusText.Position = UDim2.new(0, 26, 0, 0)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "San sang xac thuc"
+StatusText.TextColor3 = COLORS.SubText
+StatusText.TextSize = 10
+StatusText.Font = Enum.Font.GothamMedium
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.TextTruncate = Enum.TextTruncate.AtEnd
+StatusText.Parent = StatusBadge
+
+--// ============ INPUT ============
+local InputContainer = Instance.new("Frame")
+InputContainer.Size = UDim2.new(1, -36, 0, 46)
+InputContainer.Position = UDim2.new(0, 18, 0, 168)
+InputContainer.BackgroundColor3 = COLORS.PanelLight
+InputContainer.BorderSizePixel = 0
+InputContainer.Parent = Main
+Instance.new("UICorner", InputContainer).CornerRadius = UDim.new(0, 13)
+
+local InputStroke = Instance.new("UIStroke")
+InputStroke.Color = COLORS.Accent2
+InputStroke.Thickness = 1.3
+InputStroke.Transparency = 0.4
+InputStroke.Parent = InputContainer
+
+local KeyIcon = Instance.new("TextLabel")
+KeyIcon.Size = UDim2.new(0, 38, 1, 0)
+KeyIcon.Position = UDim2.new(0, 8, 0, 0)
+KeyIcon.BackgroundTransparency = 1
+KeyIcon.Text = "🔑"
+KeyIcon.TextSize = 15
+KeyIcon.Font = Enum.Font.GothamBold
+KeyIcon.Parent = InputContainer
+
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(1, -56, 1, 0)
+KeyInput.Position = UDim2.new(0, 46, 0, 0)
+KeyInput.BackgroundTransparency = 1
+KeyInput.Text = ""
+KeyInput.PlaceholderText = "QBAO-HUB-..."
+KeyInput.TextColor3 = COLORS.Text
+KeyInput.PlaceholderColor3 = COLORS.SubText
+KeyInput.TextSize = 12
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.TextXAlignment = Enum.TextXAlignment.Left
+KeyInput.ClearTextOnFocus = false
+KeyInput.Parent = InputContainer
+
+KeyInput.Focused:Connect(function()
+    TweenService:Create(InputStroke, TweenInfo.new(0.2), {Color = COLORS.Gold, Transparency = 0}):Play()
+end)
+KeyInput.FocusLost:Connect(function()
+    TweenService:Create(InputStroke, TweenInfo.new(0.2), {Color = COLORS.Accent2, Transparency = 0.4}):Play()
+end)
+
+--// ============ CHECK BUTTON ============
+local CheckBtn = Instance.new("TextButton")
+CheckBtn.Name = "CheckBtn"
+CheckBtn.Size = UDim2.new(1, -36, 0, 48)
+CheckBtn.Position = UDim2.new(0, 18, 0, 224)
+CheckBtn.BackgroundColor3 = COLORS.Accent
+CheckBtn.Text = "XAC NHAN KEY"
+CheckBtn.TextColor3 = Color3.new(1,1,1)
+CheckBtn.TextSize = 14
+CheckBtn.Font = Enum.Font.GothamBold
+CheckBtn.AutoButtonColor = false
+CheckBtn.Parent = Main
+Instance.new("UICorner", CheckBtn).CornerRadius = UDim.new(0, 14)
+
+local CheckGrad = Instance.new("UIGradient")
+CheckGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, COLORS.Accent),
+    ColorSequenceKeypoint.new(0.33, COLORS.Accent2),
+    ColorSequenceKeypoint.new(0.66, COLORS.Accent3),
+    ColorSequenceKeypoint.new(1, COLORS.Accent),
+}
+CheckGrad.Parent = CheckBtn
+
+local CheckStroke = Instance.new("UIStroke")
+CheckStroke.Color = COLORS.Gold
+CheckStroke.Thickness = 1.3
+CheckStroke.Transparency = 0.4
+CheckStroke.Parent = CheckBtn
+
+CheckBtn.MouseEnter:Connect(function()
+    TweenService:Create(CheckStroke, TweenInfo.new(0.15), {Transparency = 0, Thickness = 1.8}):Play()
+end)
+CheckBtn.MouseLeave:Connect(function()
+    TweenService:Create(CheckStroke, TweenInfo.new(0.15), {Transparency = 0.4, Thickness = 1.3}):Play()
+end)
+
+--// ============ INFO PANEL ============
+local InfoPanel = Instance.new("Frame")
+InfoPanel.Size = UDim2.new(1, -36, 0, 52)
+InfoPanel.Position = UDim2.new(0, 18, 0, 282)
+InfoPanel.BackgroundColor3 = COLORS.PanelLight
+InfoPanel.BackgroundTransparency = 0.5
+InfoPanel.BorderSizePixel = 0
+InfoPanel.Parent = Main
+Instance.new("UICorner", InfoPanel).CornerRadius = UDim.new(0, 10)
+
+local InfoPanelStroke = Instance.new("UIStroke")
+InfoPanelStroke.Color = COLORS.Accent2
+InfoPanelStroke.Thickness = 1
+InfoPanelStroke.Transparency = 0.7
+InfoPanelStroke.Parent = InfoPanel
+
+local InfoLine1 = Instance.new("TextLabel")
+InfoLine1.Size = UDim2.new(1, -16, 0, 18)
+InfoLine1.Position = UDim2.new(0, 8, 0, 6)
+InfoLine1.BackgroundTransparency = 1
+InfoLine1.Text = "Trang thai: Chua kich hoat"
+InfoLine1.TextColor3 = COLORS.SubText
+InfoLine1.TextSize = 10
+InfoLine1.Font = Enum.Font.GothamMedium
+InfoLine1.TextXAlignment = Enum.TextXAlignment.Left
+InfoLine1.Parent = InfoPanel
+
+local InfoLine2 = Instance.new("TextLabel")
+InfoLine2.Size = UDim2.new(1, -16, 0, 18)
+InfoLine2.Position = UDim2.new(0, 8, 0, 24)
+InfoLine2.BackgroundTransparency = 1
+InfoLine2.Text = "Loai key: --"
+InfoLine2.TextColor3 = COLORS.SubText
+InfoLine2.TextSize = 10
+InfoLine2.Font = Enum.Font.GothamMedium
+InfoLine2.TextXAlignment = Enum.TextXAlignment.Left
+InfoLine2.Parent = InfoPanel
+
+--// ============ MESSAGE ============
+local Message = Instance.new("TextLabel")
+Message.Size = UDim2.new(1, -36, 0, 36)
+Message.Position = UDim2.new(0, 18, 0, 344)
+Message.BackgroundTransparency = 1
+Message.Text = "Anh em get key 1 lan nhung dung VINH VIEN nhe!"
+Message.TextColor3 = COLORS.Gold
+Message.TextSize = 10
+Message.Font = Enum.Font.GothamMedium
+Message.TextWrapped = true
+Message.TextXAlignment = Enum.TextXAlignment.Center
+Message.TextYAlignment = Enum.TextYAlignment.Top
+Message.Parent = Main
+
+--// ============ PROGRESS BAR ============
+local ProgressBarBg = Instance.new("Frame")
+ProgressBarBg.Size = UDim2.new(1, -36, 0, 6)
+ProgressBarBg.Position = UDim2.new(0, 18, 0, 386)
+ProgressBarBg.BackgroundColor3 = COLORS.PanelLight
+ProgressBarBg.BorderSizePixel = 0
+ProgressBarBg.Visible = false
+ProgressBarBg.Parent = Main
+Instance.new("UICorner", ProgressBarBg).CornerRadius = UDim.new(1, 0)
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = COLORS.Gold
+ProgressBar.BorderSizePixel = 0
+ProgressBar.Parent = ProgressBarBg
+Instance.new("UICorner", ProgressBar).CornerRadius = UDim.new(1, 0)
+
+local ProgressGrad = Instance.new("UIGradient")
+ProgressGrad.Color = ColorSequence.new(COLORS.Gold, COLORS.Accent, COLORS.Gold)
+ProgressGrad.Parent = ProgressBar
+
+--// ============ TOGGLE ============
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
+ToggleBtn.BackgroundColor3 = COLORS.Accent
+ToggleBtn.Text = "👑"
+ToggleBtn.TextSize = 22
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Visible = false
+ToggleBtn.AutoButtonColor = false
+ToggleBtn.Parent = ScreenGui
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = COLORS.Gold
+ToggleStroke.Thickness = 2
+ToggleStroke.Parent = ToggleBtn
+
+--// ============ SPARKLES ============
+local function spawnSparkle()
+    if not Main.Parent then return end
+    local sparkle = Instance.new("TextLabel")
+    sparkle.BackgroundTransparency = 1
+    sparkle.Text = "✦"
+    sparkle.TextColor3 = COLORS.Gold
+    sparkle.TextSize = math.random(8, 14)
+    sparkle.Font = Enum.Font.GothamBold
+    sparkle.Size = UDim2.new(0, 20, 0, 20)
+    sparkle.Position = UDim2.new(math.random(), 0, 1.1, 0)
+    sparkle.Rotation = math.random(0, 360)
+    sparkle.ZIndex = 10
+    sparkle.Parent = SparkleContainer
+    
+    local targetPos = UDim2.new(sparkle.Position.X.Scale, sparkle.Position.X.Offset, -0.1, 0)
+    local duration = math.random(3, 6)
+    
+    TweenService:Create(sparkle, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        Position = targetPos,
+        Rotation = sparkle.Rotation + 360,
+        TextTransparency = 1,
+    }):Play()
+    
+    task.delay(duration, function()
+        if sparkle then sparkle:Destroy() end
+    end)
+end
+
+task.spawn(function()
+    while Main.Parent do
+        task.wait(math.random(30, 80) / 100)
+        spawnSparkle()
+    end
+end)
+
+--// ============ FUNCTIONS ============
+local function setStatus(text, color, dotColor)
+    StatusText.Text = text
+    StatusText.TextColor3 = color or COLORS.SubText
+    if dotColor then
+        StatusDot.BackgroundColor3 = dotColor
+        StatusDotGlow.BackgroundColor3 = dotColor
+    end
+end
+
+local function setInfo(line1, line2)
+    if line1 then InfoLine1.Text = line1 end
+    if line2 then InfoLine2.Text = line2 end
+end
+
+local function updateProgressBar()
+    if savedData.isPerm then
+        ProgressBarBg.Visible = false
+        return
+    end
+    if savedData.key and savedData.expire > 0 then
+        ProgressBarBg.Visible = true
+        local remaining = savedData.expire - os.time()
+        local total = CONFIG.DURATION_12H
+        local percent = math.clamp(remaining / total, 0, 1)
+        TweenService:Create(ProgressBar, TweenInfo.new(0.5), {
+            Size = UDim2.new(percent, 0, 1, 0)
+        }):Play()
+        
+        if percent < 0.2 then
+            ProgressGrad.Color = ColorSequence.new(COLORS.Error, COLORS.Warning)
+        elseif percent < 0.5 then
+            ProgressGrad.Color = ColorSequence.new(COLORS.Warning, COLORS.Gold)
+        else
+            ProgressGrad.Color = ColorSequence.new(COLORS.Gold, COLORS.Accent, COLORS.Gold)
+        end
+    end
+end
+
+local function formatTime(seconds)
+    if seconds <= 0 then return "Het han" end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+    if h > 0 then
+        return string.format("%dh %dm", h, m)
+    elseif m > 0 then
+        return string.format("%dm %ds", m, s)
+    else
+        return string.format("%ds", s)
+    end
+end
+
+local function validateKey(key)
+    key = key:gsub("%s+", ""):upper()
+    
+    if CONFIG.KEYS_PERM[key] then
+        return true, "perm", CONFIG.KEYS_PERM[key].note
+    elseif CONFIG.KEYS_12H[key] then
+        return true, "12h", CONFIG.KEYS_12H[key].note
+    end
+    return false, nil, nil
+end
+
+--// ============ ANIMATION: CLOSE MENU ============
+local function closeMenuAnimation(callback)
+    -- 1. Hien thi thong bao thanh cong
+    setStatus("Tai script thanh cong!", COLORS.Success, COLORS.Success)
+    setInfo("Trang thai: Da kich hoat", "Loai key: OK")
+    
+    task.wait(0.6)
+    
+    -- 2. Phat sang toan bo menu
+    local flashFrame = Instance.new("Frame")
+    flashFrame.Size = UDim2.new(1, 0, 1, 0)
+    flashFrame.BackgroundColor3 = COLORS.Success
+    flashFrame.BackgroundTransparency = 0.6
+    flashFrame.BorderSizePixel = 0
+    flashFrame.ZIndex = 999
+    flashFrame.Parent = Main
+    Instance.new("UICorner", flashFrame).CornerRadius = UDim.new(0, 20)
+    
+    TweenService:Create(flashFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    task.wait(0.15)
+    
+    -- 3. Fade tat ca
+    local fadeInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    
+    TweenService:Create(Main, fadeInfo, {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1
+    }):Play()
+    
+    TweenService:Create(MainStroke, fadeInfo, {Transparency = 1}):Play()
+    TweenService:Create(GlowFrame, fadeInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(GlowFrame2, fadeInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(GlowFrame3, fadeInfo, {BackgroundTransparency = 1}):Play()
+    
+    for _, v in pairs(Main:GetDescendants()) do
+        if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
+            TweenService:Create(v, fadeInfo, {TextTransparency = 1, BackgroundTransparency = 1}):Play()
+        elseif v:IsA("Frame") then
+            pcall(function()
+                TweenService:Create(v, fadeInfo, {BackgroundTransparency = 1}):Play()
+            end)
+        elseif v:IsA("UIStroke") then
+            TweenService:Create(v, fadeInfo, {Transparency = 1}):Play()
+        end
+    end
+    
+    task.wait(0.6)
+    
+    -- 4. Destroy GUI
+    if ScreenGui then
+        pcall(function() ScreenGui:Destroy() end)
+    end
+    
+    if callback then callback() end
+end
+
+local function runMainScript()
+    setStatus("Dang tai script...", COLORS.Gold, COLORS.Gold)
+    task.wait(0.5)
+    
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(CONFIG.SCRIPT_URL))()
+    end)
+    
+    if ok then
+        closeMenuAnimation(function()
+            print("[SelomenHub V6] Menu closed - Script loaded OK")
+        end)
+    else
+        setStatus("Loi: " .. tostring(err), COLORS.Error, COLORS.Error)
+        setInfo("Trang thai: Loi tai script", "Loai key: --")
+    end
+end
+
+local function checkSavedKey()
+    if savedData.key and not savedData.isPerm then
+        if CONFIG.ENABLE_12H_HWID_LOCK and savedData.hwid and savedData.hwid ~= CURRENT_HWID then
+            setStatus("Key 12H da dung tren may khac!", COLORS.Error, COLORS.Error)
+            setInfo("Trang thai: Bi khoa HWID", "Loai key: 12H")
+            return false
+        end
+    end
+    
+    if savedData.isPerm then
+        setInfo("Trang thai: Da kich hoat (Vinh vien)", "Loai key: PERMANENT")
+        return true
+    end
+    
+    if savedData.key and savedData.expire > os.time() then
+        local remaining = savedData.expire - os.time()
+        setInfo("Trang thai: Con " .. formatTime(remaining), "Loai key: 12H (HWID Lock)")
+        updateProgressBar()
+        return true
+    end
+    
+    if savedData.key and savedData.expire <= os.time() then
+        setStatus("Key da het han. Nhap key moi!", COLORS.Error, COLORS.Error)
+        savedData.key = nil
+        savedData.expire = 0
+        saveData(savedData)
+    end
+    
+    return false
+end
+
+--// ============ EVENTS ============
+GetKeyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then setclipboard(CONFIG.GETKEY_LINK) end
+    setStatus("Da copy link GET KEY!", COLORS.Success, COLORS.Success)
+    pcall(function()
+        game:GetService("GuiService"):OpenBrowserWindow(CONFIG.GETKEY_LINK)
+    end)
+end)
+
+DiscordBtn.MouseButton1Click:Connect(function()
+    if setclipboard then setclipboard(CONFIG.DISCORD_LINK) end
+    setStatus("Da copy link Discord!", COLORS.Success, COLORS.Success)
+    pcall(function()
+        game:GetService("GuiService"):OpenBrowserWindow(CONFIG.DISCORD_LINK)
+    end)
+end)
+
+CheckBtn.MouseButton1Click:Connect(function()
+    if savedData.lockUntil and savedData.lockUntil > os.time() then
+        local wait = savedData.lockUntil - os.time()
+        setStatus("Bi khoa " .. wait .. "s!", COLORS.Error, COLORS.Error)
+        return
+    end
+    
+    local key = KeyInput.Text
+    if key == "" then
+        setStatus("Vui long nhap key!", COLORS.Error, COLORS.Error)
+        return
+    end
+    
+    local upperKey = key:gsub("%s+", ""):upper()
+    if not upperKey:match("^QBAO%-HUB%-") then
+        setStatus("Key phai bat dau bang QBAO-HUB-!", COLORS.Error, COLORS.Error)
+        return
+    end
+    
+    setStatus("Dang kiem tra key...", COLORS.Gold, COLORS.Gold)
+    task.wait(0.5)
+    
+    local valid, keyType, note = validateKey(key)
+    
+    if not valid then
+        savedData.failedAttempts = (savedData.failedAttempts or 0) + 1
+        
+        if savedData.failedAttempts >= CONFIG.MAX_FAILED_ATTEMPTS then
+            savedData.lockUntil = os.time() + CONFIG.LOCKOUT_TIME
+            savedData.failedAttempts = 0
+            saveData(savedData)
+            setStatus("Nhap sai qua nhieu! Khoa " .. CONFIG.LOCKOUT_TIME .. "s", COLORS.Error, COLORS.Error)
+        else
+            saveData(savedData)
+            local remain = CONFIG.MAX_FAILED_ATTEMPTS - savedData.failedAttempts
+            setStatus("Key sai! Con " .. remain .. " lan thu", COLORS.Error, COLORS.Error)
+        end
+        return
+    end
+    
+    savedData.failedAttempts = 0
+    
+    if keyType == "perm" then
+        savedData.key = upperKey
+        savedData.expire = 0
+        savedData.isPerm = true
+        savedData.hwid = nil
+        savedData.activatedAt = os.time()
+        saveData(savedData)
+        
+        setStatus("Key VINH VIEN hop le!", COLORS.Success, COLORS.Success)
+        setInfo("Trang thai: Da kich hoat (Vinh vien)", "Loai key: " .. (note or "PERMANENT"))
+        task.wait(0.7)
+        runMainScript()
+        
+    elseif keyType == "12h" then
+        savedData.key = upperKey
+        savedData.expire = os.time() + CONFIG.DURATION_12H
+        savedData.isPerm = false
+        savedData.hwid = CURRENT_HWID
+        savedData.activatedAt = os.time()
+        saveData(savedData)
+        
+        setStatus("Key 12H hop le!", COLORS.Success, COLORS.Success)
+        setInfo("Trang thai: Con 12h", "Loai key: " .. (note or "12H") .. " (HWID Lock)")
+        task.wait(0.7)
+        runMainScript()
+    end
+end)
+
+KeyInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        CheckBtn.MouseButton1Click:Fire()
+    end
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    ToggleBtn.Visible = true
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    Main.Visible = true
+    ToggleBtn.Visible = false
+end)
+
+--// ============ AUTO CHECK ============
+task.spawn(function()
+    task.wait(0.6)
+    if checkSavedKey() then
+        setStatus("Key da luu. Dang tu dong chay...", COLORS.Success, COLORS.Success)
+        task.wait(1)
+        runMainScript()
+    end
+end)
+
+--// ============ ANIMATIONS ============
+Main.Size = UDim2.new(0, CONFIG.MENU_WIDTH, 0, 0)
+TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, CONFIG.MENU_WIDTH, 0, CONFIG.MENU_HEIGHT)
+}):Play()
+
+task.spawn(function()
+    while Main.Parent do
+        TweenService:Create(GlowFrame, TweenInfo.new(2), {BackgroundTransparency = 0.85}):Play()
+        task.wait(0.6)
+        TweenService:Create(GlowFrame2, TweenInfo.new(2), {BackgroundTransparency = 0.88}):Play()
+        task.wait(0.6)
+        TweenService:Create(GlowFrame3, TweenInfo.new(2), {BackgroundTransparency = 0.9}):Play()
+        task.wait(0.8)
+        TweenService:Create(GlowFrame, TweenInfo.new(2), {BackgroundTransparency = 0.92}):Play()
+        TweenService:Create(GlowFrame2, TweenInfo.new(2), {BackgroundTransparency = 0.94}):Play()
+        TweenService:Create(GlowFrame3, TweenInfo.new(2), {BackgroundTransparency = 0.96}):Play()
+        task.wait(2)
+    end
+end)
+
+task.spawn(function()
+    while Main.Parent do
+        TweenService:Create(BorderGrad, TweenInfo.new(4, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
+        task.wait(4)
+        BorderGrad.Rotation = 0
+    end
+end)
+
+task.spawn(function()
+    while Main.Parent do
+        TweenService:Create(CheckGrad, TweenInfo.new(3, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
+        task.wait(3)
+        CheckGrad.Rotation = 0
+    end
+end)
+
+task.spawn(function()
+    while Main.Parent do
+        TweenService:Create(TitleGrad, TweenInfo.new(3, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
+        task.wait(3)
+        TitleGrad.Rotation = 0
+    end
+end)
+
+task.spawn(function()
+    while Main.Parent do
+        TweenService:Create(StatusDotGlow, TweenInfo.new(1), {BackgroundTransparency = 0.4}):Play()
+        task.wait(1)
+        TweenService:Create(StatusDotGlow, TweenInfo.new(1), {BackgroundTransparency = 0.85}):Play()
+        task.wait(1)
+    end
+end)
+
+task.spawn(function()
+    while Main.Parent do
+        task.wait(5)
+        if savedData.key and savedData.expire > 0 and not savedData.isPerm then
+            local remaining = savedData.expire - os.time()
+            if remaining <= 0 then
+                setInfo("Trang thai: Key da het han!", "Loai key: 12H - HET HAN")
+                setStatus("Key het han! Nhap key moi.", COLORS.Error, COLORS.Error)
+                savedData.key = nil
+                savedData.expire = 0
+                saveData(savedData)
+            else
+                setInfo("Trang thai: Con " .. formatTime(remaining), "Loai key: 12H (HWID Lock)")
+                updateProgressBar()
+            end
+        end
+    end
+end)
+
+print("[SelomenHub Key V6] Final version loaded")
+print("[HWID] " .. CURRENT_HWID)
